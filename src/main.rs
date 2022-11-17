@@ -1,31 +1,49 @@
 use std::env;
 
-use serenity::async_trait;
-use serenity::prelude::*;
-use serenity::model::channel::Message;
-use serenity::framework::standard::macros::{command, group};
-use serenity::framework::standard::{StandardFramework, CommandResult};
+use serenity::Client;
+use slashy::{
+    framework::{
+        Framework,
+        CommandContext,
+    },
+    commands::CommandResult,
+    settings::Settings,
+    command,
+    subcommand
+};
 
-#[group]
-#[commands(ping)]
-struct General;
+command!{
+    ping,
+    "ping pong",
+    pong,
+    [
+        optional String text | "text to echo"
+    ]
+}
 
-struct Handler;
-
-#[async_trait]
-impl EventHandler for Handler {}
+#[subcommand]
+async fn pong(ctx: &CommandContext) -> CommandResult {
+    ctx.send_str(&format!("pong {}", ctx.get("text").unwrap_or("")))
+}
 
 #[tokio::main]
 async fn main() {
-    let framework = StandardFramework::new()
-        .configure(|c| c.prefix("~")) // set the bot's prefix to "~"
-        .group(&GENERAL_GROUP);
+    let token = std::env::var("DISCORD_TOKEN").expect("token");
+    let app_id = std::env::var("APPLICATION_ID").expect("app_id").parse().expect("app_id parse");
+
+    // Create the slashy framework
+    let settings = Settings {
+        prefixes: vec!["!"],
+        auto_register: true,
+        auto_delete: true,
+        slash_command_guilds: vec![]
+    };
+    let framework = Framework::new(settings, app_id, token)
+        .command(PING_COMMAND);
+
     // Login with a bot token from the environment
-    let token = env::var("DISCORD_TOKEN").expect("token");
-    let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
-    let mut client = Client::builder(token, intents)
-        .event_handler(Handler)
-        .framework(framework)
+    let mut client = Client::builder(token)
+        .event_handler(framework)
         .await
         .expect("Error creating client");
 
@@ -33,11 +51,4 @@ async fn main() {
     if let Err(why) = client.start().await {
         println!("An error occurred while running the client: {:?}", why);
     }
-}
-
-#[command]
-async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "Pong!").await?;
-
-    Ok(())
 }
