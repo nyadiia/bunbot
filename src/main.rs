@@ -8,6 +8,7 @@ use serenity::framework::standard::{StandardFramework, CommandResult};
 
 #[group]
 #[commands(ping)]
+#[commands(echo)]
 struct General;
 
 struct Handler;
@@ -39,6 +40,13 @@ async fn main() {
 #[command]
 async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
     msg.reply(ctx, "Pong!").await?;
+
+    Ok(())
+}
+
+#[command]
+async fn echo(ctx: &Context, msg:&Message) -> CommandResult {
+    msg.reply(ctx, msg.content).await?;
 
     Ok(())
 }
